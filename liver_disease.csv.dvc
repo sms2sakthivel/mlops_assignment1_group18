@@ -1,0 +1,5 @@
+outs:
+- md5: 3f72a5fb88324799c24eaded355f6ead
+  size: 14880
+  hash: md5
+  path: liver_disease.csv
