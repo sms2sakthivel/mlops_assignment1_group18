@@ -1,7 +1,6 @@
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
-import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -11,10 +10,12 @@ from loguru import logger
 from pickle import dump
 import mlflow
 import mlflow.sklearn
+import os
 
 logger.add("./logs.log", level="TRACE", format="{time} {message}", retention="2500000 seconds")
-test_ratio = 0.2
+test_ratio = 0.3
 random_state=100
+experiemnt_name = "Liver Disease Prediction"
 
 def load_dataset():
     df = pd.read_csv("./Data/liver_disease.csv")
@@ -57,9 +58,9 @@ def train_model(X_train, Y_train):
 
     # Step 2: Define hyperparameters to tune
     param_grid = {
-        "n_estimators":[200,250,300],
-        "max_depth":[3,6,9,12],
-        "min_samples_leaf":[5,10,15,20]
+        "n_estimators":[250],
+        "max_depth":[3,12],
+        "min_samples_leaf":[5]
     }
 
     # Step 3: Define GridSearchCV Hyperparameter tuning object
@@ -106,6 +107,10 @@ def evaluate_model(rf_grid_fit, X_test, Y_test):
     }
 
 def save_model(rf_grid_fit, scaler):
+    # Ensure the Model directory exists
+    os.makedirs('./Model', exist_ok=True)
+    
+    # Save the scaler and model to the Model directory
     dump(scaler, open('./Model/scaler.pkl', 'wb'))
     dump(rf_grid_fit, open('./Model/rf_model.pkl', 'wb'))
     logger.info(f"Model and Scaler saved successfully.")
@@ -114,7 +119,7 @@ def save_model(rf_grid_fit, scaler):
 
 def train():
     # Set the experiment
-    mlflow.set_experiment("Liver Disease Prediction")
+    mlflow.set_experiment(experiemnt_name)
     
     # Start an MLflow run
     with mlflow.start_run():
