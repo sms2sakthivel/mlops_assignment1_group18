@@ -15,7 +15,7 @@ import mlflow.sklearn
 logger.add("./logs.log", level="TRACE", format="{time} {message}", retention="2500000 seconds")
 
 def load_dataset():
-    df = pd.read_csv("./liver_disease.csv")
+    df = pd.read_csv("./Data/liver_disease.csv")
     logger.info(f"Dataset loaded successfully. Shape: {df.shape}")
     return df
 
@@ -55,9 +55,9 @@ def train_model(X_train, Y_train):
 
     # Step 2: Define hyperparameters to tune
     param_grid = {
-        "n_estimators":[50,100,150], 
-        "max_depth":[3,6,9],
-        "min_samples_leaf":[5,10,15]
+        "n_estimators":[50,100], 
+        "max_depth":[3,6],
+        "min_samples_leaf":[5,10]
     }
 
     # Step 3: Define GridSearchCV Hyperparameter tuning object
@@ -159,7 +159,7 @@ def train():
         mlflow.sklearn.log_model(rf_grid_fit, "random_forest_model")
 
         # Log the scaler
-        mlflow.log_artifact("scaler.pkl")
+        mlflow.log_artifact("./Model/scaler.pkl")
 
         # Step 7: Log the results in the logger
         logger.info(f"Best Hyper Parameters : {rf_grid_fit.best_params_} with Score : {rf_grid_fit.best_score_}")
