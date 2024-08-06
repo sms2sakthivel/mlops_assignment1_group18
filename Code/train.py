@@ -55,9 +55,9 @@ def train_model(X_train, Y_train):
 
     # Step 2: Define hyperparameters to tune
     param_grid = {
-        "n_estimators":[50,100], 
-        "max_depth":[3,6],
-        "min_samples_leaf":[5,10]
+        "n_estimators":[50,100,150], 
+        "max_depth":[3,6,9],
+        "min_samples_leaf":[5,10,15]
     }
 
     # Step 3: Define GridSearchCV Hyperparameter tuning object
