@@ -13,6 +13,8 @@ import mlflow
 import mlflow.sklearn
 
 logger.add("./logs.log", level="TRACE", format="{time} {message}", retention="2500000 seconds")
+test_ratio = 0.2
+random_state=100
 
 def load_dataset():
     df = pd.read_csv("./Data/liver_disease.csv")
@@ -29,8 +31,8 @@ def preprocess_data(df):
     Y = Y["Dataset"].map({"Yes":1, "No":0}) # Yes means patient has liver disease.
 
     # Step 3: Splitting the dataset
-    test_ratio = 0.2
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, stratify=Y , test_size=test_ratio , random_state=100)
+    
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, stratify=Y , test_size=test_ratio , random_state=random_state)
 
     # Step 4: Fixing class imbalance using SMOTE
     # The dataset is highly imbalanced, There are 416 patients with liver disease and 167 patients without liver disease.
@@ -55,9 +57,9 @@ def train_model(X_train, Y_train):
 
     # Step 2: Define hyperparameters to tune
     param_grid = {
-        "n_estimators":[50,100,150], 
-        "max_depth":[3,6,9],
-        "min_samples_leaf":[5,10,15]
+        "n_estimators":[200,250,300],
+        "max_depth":[3,6,9,12],
+        "min_samples_leaf":[5,10,15,20]
     }
 
     # Step 3: Define GridSearchCV Hyperparameter tuning object
@@ -138,8 +140,8 @@ def train():
         # Step 6: Log the parameters, metrics, and artifacts to MLflow
         mlflow.log_param("Training Dataset Size", len(X_train))
         mlflow.log_param("Test Dataset Size", len(X_test))
-        mlflow.log_param("random_state", 100)
-        mlflow.log_param("test_ratio", 0.2)
+        mlflow.log_param("random_state", random_state)
+        mlflow.log_param("test_ratio", test_ratio)
         mlflow.log_param("best_n_estimators", rf_grid_fit.best_params_["n_estimators"])
         mlflow.log_param("best_max_depth", rf_grid_fit.best_params_["max_depth"])
         mlflow.log_param("best_min_samples_leaf", rf_grid_fit.best_params_["min_samples_leaf"])
