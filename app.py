@@ -1,18 +1,41 @@
-from fastapi import FastAPI
-from Service import router
-from fastapi.middleware.cors import CORSMiddleware
+from flask import Flask, request, jsonify
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+import joblib
 
-# Step 1: Create a FastAPI app
-app = FastAPI()
+app = Flask(__name__)
 
-app.add_middleware(CORSMiddleware,
-                    allow_origins=["*"],
-                    allow_credentials=True,
-                    allow_methods=["*"],
-                    allow_headers=["*"],)
 
-app.include_router(router.router)
+# Load and train the model
+def train_model():
+    data = load_iris()
+    X = data.data
+    y = data.target
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    model = LogisticRegression()
+    model.fit(X_scaled, y)
+    joblib.dump(model, 'model.joblib')
+    joblib.dump(scaler, 'scaler.joblib')
 
-@app.get("/")
-async def root():
-    return {"message": "Group 18 Assignment 1 API"}
+
+# Train the model when the application starts
+train_model()
+
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    if request.method == 'POST':
+        data = request.get_json()
+        features = pd.DataFrame(data)
+        scaler = joblib.load('scaler.joblib')
+        model = joblib.load('model.joblib')
+        features_scaled = scaler.transform(features)
+        predictions = model.predict(features_scaled)
+        return jsonify(predictions.tolist())
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=80)
