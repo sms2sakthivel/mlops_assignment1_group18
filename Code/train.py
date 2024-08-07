@@ -1,43 +1,53 @@
-import pandas as pd
 import warnings
-warnings.filterwarnings('ignore')
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
-from sklearn.model_selection import train_test_split, GridSearchCV
-from imblearn.over_sampling import SMOTE 
-from sklearn.ensemble import RandomForestClassifier
-from loguru import logger
+import os
 from pickle import dump
+
 import mlflow
 import mlflow.sklearn
-import os
+import pandas as pd
+from imblearn.over_sampling import SMOTE
+from loguru import logger
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (
+    accuracy_score, confusion_matrix, f1_score,
+    precision_score, recall_score, roc_auc_score
+)
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.preprocessing import StandardScaler
 
-logger.add("./logs.log", level="TRACE", format="{time} {message}", retention="2500000 seconds")
+warnings.filterwarnings('ignore')
+
+logger.add("./logs.log", level="TRACE", format="{time} {message}",
+           retention="2500000 seconds")
 test_ratio = 0.3
-random_state=100
-experiemnt_name = "Liver Disease Prediction"
+random_state = 100
+experiment_name = "Liver Disease Prediction"
+
 
 def load_dataset():
     df = pd.read_csv("./Data/liver_disease.csv")
     logger.info(f"Dataset loaded successfully. Shape: {df.shape}")
     return df
 
+
 def preprocess_data(df):
     # Step 1: Handle missing values
     df["Albumin_and_Globulin_Ratio"].ffill(inplace=True)
 
     # Step 2: Label encoding
-    X = df.iloc[:,:-1]
-    Y = df.iloc[:,[-1]]
-    Y = Y["Dataset"].map({"Yes":1, "No":0}) # Yes means patient has liver disease.
+    X = df.iloc[:, :-1]
+    Y = df.iloc[:, [-1]]
+    Y = Y["Dataset"].map({"Yes": 1, "No": 0})  # Yes means patient has liver disease.
 
     # Step 3: Splitting the dataset
-    
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, stratify=Y , test_size=test_ratio , random_state=random_state)
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        X, Y, stratify=Y, test_size=test_ratio, random_state=random_state
+    )
 
     # Step 4: Fixing class imbalance using SMOTE
-    # The dataset is highly imbalanced, There are 416 patients with liver disease and 167 patients without liver disease.
-    sm = SMOTE(random_state = 25, sampling_strategy = 0.75)
+    # The dataset is highly imbalanced, There are 416 patients with liver disease and
+    # 167 patients without liver disease.
+    sm = SMOTE(random_state=25, sampling_strategy=0.75)
     X_train, Y_train = sm.fit_resample(X_train, Y_train)
 
     # Step 5: Standard scaling
@@ -49,8 +59,9 @@ def preprocess_data(df):
     X_train_final = pd.DataFrame(X_train_scaled, columns=X_train.columns)
     X_test_final = pd.DataFrame(X_test_scaled, columns=X_test.columns)
 
-    logger.info(f"Data Preprocessing completed successfully.")
+    logger.info("Data Preprocessing completed successfully.")
     return X_train_final, Y_train, X_test_final, Y_test, scaler
+
 
 def train_model(X_train, Y_train):
     # Step 1: Define Random Forest Classifier model
@@ -58,18 +69,20 @@ def train_model(X_train, Y_train):
 
     # Step 2: Define hyperparameters to tune
     param_grid = {
-        "n_estimators":[250],
-        "max_depth":[3,12],
-        "min_samples_leaf":[5]
+        "n_estimators": [250],
+        "max_depth": [3, 12],
+        "min_samples_leaf": [5]
     }
 
     # Step 3: Define GridSearchCV Hyperparameter tuning object
-    rf_grid = GridSearchCV(rf_model, param_grid = param_grid, cv=5, refit=True, scoring = 'roc_auc', verbose=3)
+    rf_grid = GridSearchCV(
+        rf_model, param_grid=param_grid, cv=5, refit=True, scoring='roc_auc', verbose=3
+    )
 
     # Step 4: Train the model
-    rf_grid_fit = rf_grid.fit(X_train,Y_train)
+    rf_grid_fit = rf_grid.fit(X_train, Y_train)
 
-    logger.info(f"Model Training completed successfully.")
+    logger.info("Model Training completed successfully.")
     return rf_grid_fit
 
 
@@ -96,7 +109,7 @@ def evaluate_model(rf_grid_fit, X_test, Y_test):
     print("Confusion Matrix:")
     print(cm)
 
-    logger.info(f"Model Evaluation completed successfully.")
+    logger.info("Model Evaluation completed successfully.")
     return {
         "accuracy": accuracy,
         "precision": precision,
@@ -106,27 +119,27 @@ def evaluate_model(rf_grid_fit, X_test, Y_test):
         "confusion_matrix": cm
     }
 
+
 def save_model(rf_grid_fit, scaler):
     # Ensure the Model directory exists
     os.makedirs('./Model', exist_ok=True)
-    
+
     # Save the scaler and model to the Model directory
     dump(scaler, open('./Model/scaler.pkl', 'wb'))
     dump(rf_grid_fit, open('./Model/rf_model.pkl', 'wb'))
-    logger.info(f"Model and Scaler saved successfully.")
-
+    logger.info("Model and Scaler saved successfully.")
 
 
 def train():
     # Set the experiment
-    mlflow.set_experiment(experiemnt_name)
-    
+    mlflow.set_experiment(experiment_name)
+
     # Start an MLflow run
     with mlflow.start_run():
         # Set tags
         mlflow.set_tag("project", "liver_disease")
         mlflow.set_tag("author", "MLOPS-Group-18")
-        
+
         # Step 1: Load the dataset
         df = load_dataset()
 
@@ -158,7 +171,9 @@ def train():
         mlflow.log_metric("roc_auc", evaluation_results["roc_auc"])
 
         # Log confusion matrix as a CSV artifact
-        cm_df = pd.DataFrame(evaluation_results["confusion_matrix"], index=["Actual Yes", "Actual No"], columns=["Pred Yes", "Pred No"])
+        cm_df = pd.DataFrame(
+            evaluation_results["confusion_matrix"], index=["Actual Yes", "Actual No"], columns=["Pred Yes", "Pred No"]
+        )
         cm_df.to_csv("confusion_matrix.csv")
         mlflow.log_artifact("confusion_matrix.csv")
 
@@ -172,6 +187,7 @@ def train():
         logger.info(f"Best Hyper Parameters : {rf_grid_fit.best_params_} with Score : {rf_grid_fit.best_score_}")
         logger.info(f"Cross Validation Detailed Results : {rf_grid_fit.cv_results_}")
         logger.info(f"Model Evaluation Metrics : {evaluation_results}")
+
 
 if __name__ == "__main__":
     train()

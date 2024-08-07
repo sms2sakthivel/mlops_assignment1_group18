@@ -1,8 +1,10 @@
 # fetch_artifacts.py
-import mlflow
 import os
 import shutil
+
+import mlflow
 from mlflow.tracking import MlflowClient
+
 
 def fetch_artifacts():
     client = MlflowClient()
@@ -25,13 +27,14 @@ def fetch_artifacts():
 
     if runs:
         best_run = runs[0]
-        
+
         # Create Model directory if it does not exist
         os.makedirs("Model", exist_ok=True)
 
         # Download and copy the model
-        model_path = mlflow.artifacts.download_artifacts(run_id=best_run.info.run_id, artifact_path="random_forest_model")
-        print( model_path           )
+        model_path = mlflow.artifacts.download_artifacts(run_id=best_run.info.run_id,
+                                                         artifact_path="random_forest_model")
+        print(model_path)
         shutil.copy(f'{model_path}/model.pkl', "Model/rf_model.pkl")
 
         # Download and copy the scaler
@@ -41,6 +44,7 @@ def fetch_artifacts():
         print("Model and scaler downloaded and copied to 'Model' directory.")
     else:
         print("No runs found.")
+
 
 if __name__ == "__main__":
     fetch_artifacts()
